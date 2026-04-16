@@ -1,0 +1,77 @@
+{
+  "_id": "69cc058d6f26d16bca0a8b84",
+  "name": "indrajit",
+  "email": "indrajit@gmail.com",
+  "password": "$2b$10$M8sBb4K1a0SwhTI1HKnrreH.NcswH78X/HQeepm63ZUFSRWdAew8y",
+  "role": "athlete",
+  "age": 22,
+  "onboardingType": "estimated",
+  "gender": "male",
+  "sport": "marathon",
+  "specialization": "marathon",
+  "trainingMode": "coach",
+  "profile": {
+    "age": "22",
+    "gender": "male",
+    "sport": "marathon",
+    "experience": "beginner",
+    "trainingMode": "coach",
+    "height": "175",
+    "weight": "70",
+    "dominantSide": "right",
+    "bmi": "22.9",
+    "bmiCategory": "Normal",
+    "goal": "marathon",
+    "injuries": [
+      {
+        "injuryName": "none",
+        "year": "",
+        "status": "Recovered",
+        "notes": ""
+      }
+    ],
+    "achievements": [
+      {
+        "event": "marathon",
+        "position": "Gold(state meet)",
+        "year": "2023"
+      }
+    ],
+    "personalBest": [
+      {
+        "event": "marathon",
+        "value": "1:30:00"
+      }
+    ]
+  },
+  "createdAt": "2026-03-31T17:34:05.446Z",
+  "updatedAt": "2026-03-31T17:34:32.920Z",
+  "__v": 0,
+  "HRmax_estimate": 198,
+  "LTHR": 168,
+  "LT_pace": 420,
+  "fitnessLevel": "beginner",
+  "restingHR": 58,
+  "zones": {
+    "z1": {
+      "min": 0,
+      "max": 142
+    },
+    "z2": {
+      "min": 143,
+      "max": 150
+    },
+    "z3": {
+      "min": 151,
+      "max": 159
+    },
+    "z4": {
+      "min": 160,
+      "max": 167
+    },
+    "z5": {
+      "min": 168,
+      "max": 208
+    }
+  }
+}

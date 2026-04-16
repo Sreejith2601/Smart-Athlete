@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Smart Athlete",
+    "slug": "smart-athlete",
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFF5F5"
+    },
+    "android": {
+      "package": "com.anonymous.smartathlete"
+    }
+  }
+}

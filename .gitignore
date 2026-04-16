@@ -1,0 +1,24 @@
+# Node dependencies
+node_modules/
+
+# Python virtual environment
+ml/venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Environment variables (Sensitive)
+.env
+
+# Build files and logs
+dist/
+build/
+.expo/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db

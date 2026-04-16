@@ -1,0 +1,6 @@
+{
+  "python.defaultInterpreterPath": "e:\\sree\\project\\app\\module1\\ml\\venv\\Scripts\\python.exe",
+  "python.analysis.extraPaths": [
+    "e:\\sree\\project\\app\\module1\\ml\\venv\\Lib\\site-packages"
+  ]
+}
