@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, StyleSheet, Image, ScrollView, TouchableWithoutFeedback, Keyboard } from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet, Image, ScrollView, TouchableWithoutFeedback, Keyboard, Platform } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
@@ -7,6 +7,8 @@ import { registerUser } from "../../services/api";
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const Wrapper = Platform.OS === 'web' ? View : TouchableWithoutFeedback;
+  const wrapperProps = Platform.OS === 'web' ? { style: { flex: 1 } } : { onPress: Keyboard.dismiss };
   const { role } = useLocalSearchParams();
 
   const [name, setName] = useState("");
@@ -81,7 +83,7 @@ export default function RegisterScreen() {
       colors={["#FFF5F5", "#FFE4E1", "#FFF5F5"]}
       style={{ flex: 1 }}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <Wrapper {...wrapperProps}>
         <ScrollView
           contentContainerStyle={styles.container}
           showsVerticalScrollIndicator={false}
@@ -131,7 +133,7 @@ export default function RegisterScreen() {
         </Pressable>
       </View>
       </ScrollView>
-      </TouchableWithoutFeedback>
+      </Wrapper>
     </LinearGradient>
   );
 }
@@ -143,6 +145,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 24,
     paddingBottom: 40,
+    maxWidth: 460,
+    width: "100%",
+    alignSelf: "center",
   },
 
   glowGreen: {
@@ -175,6 +180,7 @@ const styles = StyleSheet.create({
 
   card: {
     width: "100%",
+    maxWidth: 460,
     padding: 24,
     borderRadius: 24,
     backgroundColor: "rgba(255, 255, 255, 0.7)",
@@ -216,6 +222,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 4,
+    cursor: "pointer",
   },
 
   buttonText: {

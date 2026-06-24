@@ -7,6 +7,7 @@ import {
   ScrollView,
   Dimensions,
   Modal,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -312,6 +313,382 @@ export default function AthleteHome() {
   // const trend = getTrendInfo(); // Removed
 
 
+
+  const isWeb = Platform.OS === 'web';
+
+  if (isWeb) {
+    return (
+      <View style={styles.webContainer}>
+        {/* Quick Setup Modal */}
+        <Modal visible={showQuickSetup} transparent={true} animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { maxWidth: 500, alignSelf: 'center', width: '100%' }]}>
+              <LinearGradient colors={['#FFFFFF', '#FFF0F5']} style={styles.modalGradient}>
+                <View style={{ alignItems: 'center', marginBottom: 20 }}>
+                  <View style={styles.welcomeIconContainer}>
+                    <Ionicons name="sparkles" size={32} color="#FF6B6B" />
+                  </View>
+                  <Text style={styles.welcomeTitle}>Welcome, {athleteName}!</Text>
+                  <Text style={styles.welcomeSubtitle}>Let's calibrate your Smart Athlete engine.</Text>
+                </View>
+
+                <View style={styles.welcomeInstructionBox}>
+                  <Text style={styles.instructionText}>
+                    To provide your Chronic Performance Index (CPI) and custom training zones, we need your resting heart rate.
+                  </Text>
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={styles.modalLabel}>Your Current Age</Text>
+                  <TextInput
+                    style={styles.modalInput} placeholder="e.g. 25" placeholderTextColor="#64748b"
+                    keyboardType="number-pad" value={setupAge} onChangeText={setSetupAge}
+                  />
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={styles.modalLabel}>Resting Heart Rate (BPM)</Text>
+                  <TextInput
+                    style={styles.modalInput} placeholder="e.g. 58" placeholderTextColor="#64748b"
+                    keyboardType="number-pad" value={restingHR} onChangeText={setRestingHR}
+                  />
+                  <Text style={styles.inputHint}>Tip: Check your watch or pulse.</Text>
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={styles.modalLabel}>Current Fitness Level</Text>
+                  <View style={styles.fitnessToggle}>
+                    {["beginner", "intermediate", "advanced"].map((level) => (
+                      <TouchableOpacity
+                        key={level}
+                        style={[styles.levelBtn, fitnessLevel === level && styles.levelBtnActive]}
+                        onPress={() => setFitnessLevel(level)}
+                      >
+                        <Text style={[styles.levelText, fitnessLevel === level && styles.levelTextActive]}>
+                          {level.charAt(0).toUpperCase() + level.slice(1)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <TouchableOpacity 
+                  style={[styles.setupCompleteBtn, (!restingHR || !setupAge || testLoading) && { opacity: 0.5 }]} 
+                  onPress={handleQuickSetup} disabled={!restingHR || !setupAge || testLoading}
+                >
+                  <LinearGradient colors={['#FF8E8B', '#FF6B6B']} style={styles.setupCompleteGradient}>
+                    <Text style={styles.setupCompleteText}>{testLoading ? "Calibrating..." : "Finish Onboarding"}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={{ alignSelf: 'center', marginTop: 16 }} onPress={handlePerformanceTest} disabled={testLoading}>
+                  <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '600', textDecorationLine: 'underline' }}>
+                    Expert: Calculate via 30-min HR Test
+                  </Text>
+                </TouchableOpacity>
+
+                {testError && <Text style={styles.modalError}>{testError}</Text>}
+              </LinearGradient>
+            </View>
+          </View>
+        </Modal>
+
+        {!isOnboardingComplete && !showQuickSetup && !loading && (
+          <TouchableOpacity 
+            style={[styles.premiumCard, { borderColor: 'rgba(255, 107, 107, 0.4)', borderStyle: 'dashed', width: '100%', marginBottom: 24 }]}
+            onPress={() => setShowQuickSetup(true)}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="alert-circle" size={24} color="#FF6B6B" />
+              <Text style={[styles.cardHeading, { color: '#FF6B6B', marginLeft: 8 }]}>Finish Setup Required</Text>
+            </View>
+            <Text style={[styles.cardSubText, { marginTop: 8 }]}>
+              Tap to enter your vitals and unlock your personalized AI training plans.
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        <View style={styles.webWelcomeRow}>
+          <Text style={styles.webGreeting}>Welcome back, <Text style={{color: '#FF6B6B'}}>{athleteName}</Text>!</Text>
+          <Text style={styles.webSubGreeting}>Let's look at your training analytics and health diagnostics today.</Text>
+        </View>
+
+        <View style={styles.webColumns}>
+          {/* Main Column */}
+          <View style={styles.webLeftColumn}>
+            {/* Today's Workout Hero Card (COACH) */}
+            {trainingMode === "coach" && todayWorkout && (
+              <View style={styles.heroCard}>
+                <TouchableOpacity activeOpacity={0.9} onPress={() => router.push('/athlete/training-overview')}>
+                  <View style={styles.heroHeader}>
+                    <Text style={styles.heroTitle}>Today's Workout</Text>
+                    <Ionicons name="walk-outline" size={20} color="#0ea5e9" />
+                  </View>
+
+                  <Text style={styles.workoutTypeActive}>
+                    {(todayWorkout.trainingType || "General Training").toUpperCase()}
+                  </Text>
+
+                  <View style={styles.workoutRow}>
+                    <View style={styles.workoutDetails}>
+                      <View style={styles.detailGroup}>
+                        <Text style={styles.detailLabel}>DURATION</Text>
+                        <Text style={styles.detailValue}>
+                          {todayWorkout.duration || "--"}
+                        </Text>
+                      </View>
+                      <View style={[styles.detailGroup, { marginTop: 16 }]}>
+                        <Text style={styles.detailLabel}>INTENSITY</Text>
+                        <Text style={styles.detailValue}>
+                          {todayWorkout.intensity || "--"}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.mapMapContainer}>
+                       <View style={styles.abstractMapPath}>
+                         <Ionicons name="navigate" size={36} color="#FF6B6B" style={{transform:[{rotate:'45deg'}]}} />
+                       </View>
+                       <View style={styles.mapFooter}>
+                         <Text style={{color:'#64748B', fontSize:9}}>COACH ASSIGNED</Text>
+                       </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Smart Insights Hero Card (SELF-TRAINED) */}
+            {trainingMode === "self" && (
+              <View style={styles.heroCard}>
+                <View style={styles.heroHeader}>
+                  <Text style={styles.heroTitle}>Smart Insights</Text>
+                  <Ionicons name="sparkles" size={20} color="#FF6B6B" />
+                </View>
+
+                {cpiData?.mlPrediction && cpiData.mlPrediction !== 'unknown' ? (
+                  <View style={{
+                    alignSelf: 'flex-start',
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 20,
+                    backgroundColor:
+                      cpiData.mlPrediction === 'overtraining'  ? 'rgba(239,68,68,0.15)' :
+                      cpiData.mlPrediction === 'undertraining' ? 'rgba(245,158,11,0.15)' :
+                                                                 'rgba(34,197,94,0.15)',
+                    borderWidth: 1,
+                    borderColor:
+                      cpiData.mlPrediction === 'overtraining'  ? '#ef4444' :
+                      cpiData.mlPrediction === 'undertraining' ? '#f59e0b' :
+                                                                 '#22c55e',
+                    marginBottom: 16
+                  }}>
+                    <Text style={{
+                      fontSize: 12,
+                      fontWeight: '800',
+                      letterSpacing: 1,
+                      textTransform: 'uppercase',
+                      color:
+                        cpiData.mlPrediction === 'overtraining'  ? '#ef4444' :
+                        cpiData.mlPrediction === 'undertraining' ? '#f59e0b' :
+                                                                   '#22c55e',
+                    }}>
+                      {cpiData.mlPrediction}
+                    </Text>
+                  </View>
+                ) : (
+                    <Text style={styles.workoutTypeActive}>DAILY OVERVIEW</Text>
+                )}
+
+                <View style={styles.workoutRow}>
+                  <View style={styles.workoutDetails}>
+                    <Text style={{color: '#1E293B', fontSize: 15, lineHeight: 22, fontWeight: '600'}}>
+                      {insightsLoading ? "Analyzing training context..." : (insightsData?.insight || "Gathering baseline data for personalized insights.")}
+                    </Text>
+                    
+                    {insightsData?.recommendation && (
+                      <Text style={{color: '#64748B', fontSize: 13, lineHeight: 20, marginTop: 12, fontStyle: 'italic'}}>
+                        "{insightsData.recommendation}"
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Performance Trend Chart */}
+            <View style={styles.trendCard}>
+              <Text style={styles.cardHeading}>PERFORMANCE TREND</Text>
+              
+              {cpiTrend && cpiTrend.length > 0 ? (
+                <View style={styles.chartArea}>
+                  <View style={{ height: 160, width: '100%', marginTop: 24 }}>
+                    {(() => {
+                      const data = cpiTrend.slice(-6);
+                      // Use a fixed wide layout chart width on web
+                      const width = 760;
+                      const height = 120;
+                      const maxVal = Math.max(...data.map(d => d.cpi), 100) + 10;
+                      const minVal = Math.max(0, Math.min(...data.map(d => d.cpi)) - 10);
+                      const range = maxVal - minVal || 1;
+                      
+                      const points = data.map((d, i) => ({
+                        x: (i / (Math.max(1, data.length - 1))) * width,
+                        y: height - ((d.cpi - minVal) / range) * height,
+                        cpi: d.cpi,
+                        date: d.weekStart
+                      }));
+
+                      return (
+                        <View style={{ width: width, height: height + 40 }}>
+                          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, backgroundColor: 'rgba(0,0,0,0.03)' }} />
+                          <View style={{ position: 'absolute', top: height/2, left: 0, right: 0, height: 1, backgroundColor: 'rgba(0,0,0,0.03)' }} />
+                          <View style={{ position: 'absolute', top: height, left: 0, right: 0, height: 1, backgroundColor: 'rgba(0,0,0,0.08)' }} />
+
+                          {/* Line Segments */}
+                          {points.map((p, i) => {
+                            if (i === points.length - 1) return null;
+                            const pnext = points[i+1];
+                            const dx = pnext.x - p.x;
+                            const dy = pnext.y - p.y;
+                            const dist = Math.sqrt(dx*dx + dy*dy);
+                            const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+                            
+                            return (
+                              <View 
+                                key={`line-${i}`}
+                                style={{
+                                  position: 'absolute',
+                                  left: p.x + dx/2 - dist/2,
+                                  top: p.y + dy/2,
+                                  width: dist,
+                                  height: 3,
+                                  backgroundColor: '#FF6B6B',
+                                  opacity: 0.8,
+                                  transform: [{ rotate: `${angle}deg` }],
+                                }}
+                              />
+                            );
+                          })}
+
+                          {/* Points */}
+                          {points.map((p, i) => {
+                             const isLatest = i === points.length - 1;
+                             const isStart = i === 0;
+                             const ptSize = isLatest ? 8 : 6;
+                             const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                             
+                             return (
+                               <View key={`pt-${i}`} style={{ position:'absolute', left: p.x - ptSize/2, top: p.y - ptSize/2}}>
+                                  <View style={{
+                                     width: ptSize, height: ptSize, borderRadius: ptSize/2, 
+                                     backgroundColor: isLatest ? '#FFFFFF' : '#FF6B6B',
+                                     borderWidth: 2, borderColor: '#FF6B6B',
+                                  }} />
+                                  
+                                  <Text style={{ position:'absolute', bottom:10, left: -15, width:30, textAlign:'center', color: isLatest ? '#FF6B6B' : '#1E293B', fontSize:10, fontWeight:'700'}}>
+                                     {Math.round(p.cpi)}
+                                  </Text>
+
+                                  {(isLatest || isStart) && (
+                                    <Text style={{ position:'absolute', top: height - p.y + 10, left: -20, width: 40, textAlign:'center', color: '#64748B', fontSize:9 }}>
+                                       {(() => {
+                                         const d = new Date(p.date); return `${months[d.getMonth()]} ${d.getDate()}`;
+                                       })()}
+                                    </Text>
+                                  )}
+                               </View>
+                             );
+                          })}
+                        </View>
+                      );
+                    })()}
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.placeholderBox}>
+                  <Text style={{color:'#64748B'}}>Analyzing history...</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Sidebar Column */}
+          <View style={styles.webRightColumn}>
+            {/* CPI PERFORMANCE SCORE */}
+            <View style={styles.metricCardWeb}>
+               <View style={styles.metricTop}>
+                  <Text style={styles.metricLabelLine}>CPI PERFORMANCE SCORE</Text>
+                  <Ionicons name="bar-chart" size={16} color="#38BDF8" style={{position:'absolute', right:0, top:0}} />
+               </View>
+               <Text style={[styles.metricValueLarge, { fontSize: 32, marginTop: 8 }]}>{cpiLoading ? "..." : (cpiData?.cpi || "--")}</Text>
+               <Text style={[styles.metricTrendUp, { color: (cpiTrend && cpiTrend.length >= 2 && cpiTrend[cpiTrend.length-1].cpi >= cpiTrend[cpiTrend.length-2].cpi) ? '#22c55e' : '#ef4444', marginTop: 4 }]}>
+                 {cpiTrend && cpiTrend.length >= 2 
+                   ? `${cpiTrend[cpiTrend.length-1].cpi >= cpiTrend[cpiTrend.length-2].cpi ? '↑' : '↓'} ${Math.abs(((cpiTrend[cpiTrend.length-1].cpi - cpiTrend[cpiTrend.length-2].cpi) / cpiTrend[cpiTrend.length-2].cpi * 100).toFixed(1))}% vs last week`
+                   : "Stable"}
+               </Text>
+               <View style={[styles.miniProgressBar, { marginTop: 12 }]}>
+                 <View style={[styles.miniProgressFill, { width: `${Math.min(100, cpiData?.cpi || 0)}%`, backgroundColor: '#38BDF8' }]} />
+               </View>
+            </View>
+
+            {/* RESTING HR */}
+            <View style={[styles.metricCardWeb, { borderColor: 'rgba(6,182,212,0.3)' }]}>
+               <View style={styles.metricTop}>
+                  <Text style={styles.metricLabelLine}>RESTING HEART RATE</Text>
+                  <Ionicons name="heart" size={16} color="#06b6d4" style={{position:'absolute', right:0, top:0}} />
+               </View>
+               <Text style={[styles.metricValueLarge, { fontSize: 32, marginTop: 8 }]}>
+                 {athlete?.restingHR || "54"}
+                 <Text style={styles.metricUnit}> bpm</Text>
+               </Text>
+               <Text style={[styles.metricTrendUp, {color:'#06b6d4', marginTop: 4}]}>Stable physiological baseline</Text>
+            </View>
+
+            {/* FATIGUE LEVEL */}
+            <View style={[styles.metricCardWeb, { borderColor: 'rgba(234,179,8,0.3)' }]}>
+               <View style={styles.metricTop}>
+                  <Text style={styles.metricLabelLine}>FATIGUE LEVEL</Text>
+                  <Ionicons name="flash-outline" size={16} color="#eab308" style={{position:'absolute', right:0, top:0}} />
+               </View>
+               <Text style={[styles.metricValueLarge, { color: '#eab308', fontSize: 24, marginTop: 8, textTransform:'capitalize' }]}>
+                 {conditionText}
+               </Text>
+               <Text style={[styles.metricTrendUp, {color:'#94a3b8', marginTop: 4}]}>{lastFatigue || 6}/10 Index</Text>
+               <View style={[styles.miniProgressBar, { marginTop: 12 }]}>
+                 <View style={[styles.miniProgressFill, { width: `${(lastFatigue || 6)*10}%`, backgroundColor: '#eab308' }]} />
+               </View>
+            </View>
+
+            {/* Quick Actions Card */}
+            <View style={styles.quickActionsCardWeb}>
+               <Text style={[styles.cardHeading, { marginBottom: 12 }]}>QUICK WORKFLOWS</Text>
+               <View style={styles.webActionsGrid}>
+                 <TouchableOpacity style={styles.actionBtnWeb} onPress={() => router.push('/athlete/log-session')}>
+                   <Ionicons name="add-circle" size={18} color="#FF6B6B" />
+                   <Text style={styles.actionBtnTextWeb}>Log Training Session</Text>
+                 </TouchableOpacity>
+                 <TouchableOpacity style={styles.actionBtnWeb} onPress={() => router.push('/athlete/history')}>
+                   <Ionicons name="time" size={18} color="#FF6B6B" />
+                   <Text style={styles.actionBtnTextWeb}>View Workout History</Text>
+                 </TouchableOpacity>
+                 <TouchableOpacity style={styles.actionBtnWeb} onPress={() => router.push('/athlete/training-overview')}>
+                   <Ionicons name="calendar" size={18} color="#FF6B6B" />
+                   <Text style={styles.actionBtnTextWeb}>Review Training Calendar</Text>
+                 </TouchableOpacity>
+                 {trainingMode === "coach" && (
+                   <TouchableOpacity style={styles.actionBtnWeb} onPress={() => router.push('/athlete/coach-chat')}>
+                     <Ionicons name="chatbubbles" size={18} color="#FF6B6B" />
+                     <Text style={styles.actionBtnTextWeb}>Message Coach</Text>
+                   </TouchableOpacity>
+                 )}
+               </View>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <LinearGradient colors={["#FFF5F5", "#FFE4E1"]} style={{ flex: 1 }}>
@@ -799,4 +1176,51 @@ const styles = StyleSheet.create({
   setupCompleteGradient: { paddingVertical: 16, alignItems: 'center' },
   setupCompleteText: { color: '#FFFFFF', fontWeight: '800', fontSize: 16 },
   modalError: { color: '#ef4444', textAlign: 'center', marginTop: 12, fontSize: 13 },
+
+  // Web Styles
+  webContainer: { width: '100%' },
+  webWelcomeRow: { marginBottom: 24 },
+  webGreeting: { fontSize: 28, fontWeight: '900', color: '#1E293B' },
+  webSubGreeting: { fontSize: 14, color: '#64748B', marginTop: 4, fontWeight: '500' },
+  webColumns: { flexDirection: 'row', gap: 24 },
+  webLeftColumn: { flex: 7, gap: 24 },
+  webRightColumn: { flex: 3.5, gap: 16 },
+  metricCardWeb: {
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    shadowColor: '#FFC0CB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  quickActionsCardWeb: {
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    shadowColor: '#FFC0CB',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  webActionsGrid: { flexDirection: 'column', gap: 10 },
+  actionBtnWeb: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#FFE4E1',
+    cursor: 'pointer',
+  },
+  actionBtnTextWeb: { color: '#1E293B', fontSize: 13, fontWeight: '700' },
 });

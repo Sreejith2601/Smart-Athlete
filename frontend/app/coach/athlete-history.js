@@ -13,6 +13,7 @@ import {
   getTrainingComparison, 
   getActiveTrainingPlan 
 } from "../../services/api";
+import { useResponsiveLayout } from "../../utils/webStyles";
 
 export default function AthleteHistory() {
   const { id } = useLocalSearchParams();
@@ -132,6 +133,184 @@ export default function AthleteHistory() {
 
   const chartWidth = Dimensions.get("window").width - 80;
   const chartHeight = 160;
+
+  const { isWeb } = useResponsiveLayout();
+
+  if (isWeb) {
+    const webChartWidth = 480;
+    return (
+      <View style={styles.webContainer}>
+        {/* Header Row */}
+        <View style={styles.webHeaderRow}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#FFF" />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.webAthleteNameHeader}>{athlete?.name || "Athlete"}</Text>
+            <Text style={styles.webAthleteSportHeader}>{athlete?.sport || "Track & Field"}</Text>
+          </View>
+        </View>
+
+        <View style={styles.webGrid}>
+          {/* Left Column: CPI and Trend Chart */}
+          <View style={styles.webLeftColumn}>
+            <View style={styles.engineCard}>
+              <Text style={styles.engineHeading}>PERFORMANCE ENGINE (CPI)</Text>
+              
+              {analyticsLoading ? (
+                <View style={styles.loaderContainer}>
+                  <Text style={styles.loaderText}>Syncing metrics...</Text>
+                </View>
+              ) : (
+                <>
+                  <View style={styles.cpiMetricRow}>
+                    <View>
+                      <Text style={styles.cpiValueLarge}>{cpiData?.cpi || "--"}</Text>
+                      <Text style={styles.cpiLabel}>CURRENT CPI SCORE</Text>
+                    </View>
+                    {cpiTrend && cpiTrend.length >= 2 && (
+                       <View style={styles.trendIndicator}>
+                          <Ionicons 
+                            name={cpiTrend[cpiTrend.length-1].cpi >= cpiTrend[cpiTrend.length-2].cpi ? "trending-up" : "trending-down"} 
+                            size={20} 
+                            color={cpiTrend[cpiTrend.length-1].cpi >= cpiTrend[cpiTrend.length-2].cpi ? "#22C55E" : "#EF4444"} 
+                          />
+                          <Text style={[styles.trendPercent, { color: cpiTrend[cpiTrend.length-1].cpi >= cpiTrend[cpiTrend.length-2].cpi ? "#22C55E" : "#EF4444" }]}>
+                            {Math.abs(((cpiTrend[cpiTrend.length-1].cpi - cpiTrend[cpiTrend.length-2].cpi) / cpiTrend[cpiTrend.length-2].cpi * 100).toFixed(1))}%
+                          </Text>
+                       </View>
+                    )}
+                  </View>
+
+                  <View style={[styles.chartContainer, { width: webChartWidth }]}>
+                    {cpiTrend && cpiTrend.length > 0 ? (
+                      <View style={{ width: webChartWidth, height: chartHeight }}>
+                        {(() => {
+                          const data = cpiTrend.slice(-6);
+                          const maxVal = Math.max(...data.map(d => d.cpi), 100) + 5;
+                          const minVal = Math.max(0, Math.min(...data.map(d => d.cpi)) - 5);
+                          const range = maxVal - minVal || 1;
+                          
+                          const points = data.map((d, i) => ({
+                            x: (i / (Math.max(1, data.length - 1))) * webChartWidth,
+                            y: chartHeight - ((d.cpi - minVal) / range) * chartHeight,
+                            cpi: d.cpi
+                          }));
+
+                          return (
+                            <>
+                              <View style={[styles.gridLine, { top: 0 }]} />
+                              <View style={[styles.gridLine, { top: chartHeight / 2 }]} />
+                              <View style={[styles.gridLine, { top: chartHeight, backgroundColor: 'rgba(255,255,255,0.1)' }]} />
+
+                              {points.map((p, i) => {
+                                if (i === points.length - 1) return null;
+                                const pnext = points[i+1];
+                                const dx = pnext.x - p.x;
+                                const dy = pnext.y - p.y;
+                                const dist = Math.sqrt(dx*dx + dy*dy);
+                                const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+                                
+                                return (
+                                  <View 
+                                    key={`line-${i}`}
+                                    style={[styles.chartLine, {
+                                      left: p.x + dx/2 - dist/2,
+                                      top: p.y + dy/2,
+                                      width: dist,
+                                      transform: [{ rotate: `${angle}deg` }],
+                                    }]}
+                                  />
+                                );
+                              })}
+
+                              {points.map((p, i) => (
+                                <View key={`point-${i}`} style={[styles.chartPoint, { left: p.x - 4, top: p.y - 4 }]} />
+                              ))}
+                            </>
+                          );
+                        })()}
+                      </View>
+                    ) : (
+                      <Text style={styles.emptyChartText}>Insufficient data for trend visualization</Text>
+                    )}
+                  </View>
+
+                  <View style={styles.scoresGrid}>
+                    <View style={styles.scoreBox}>
+                       <Text style={styles.scoreVal}>{cpiData?.performanceScore || "--"}</Text>
+                       <Text style={styles.scoreLabel}>PERFORMANCE</Text>
+                    </View>
+                    <View style={[styles.scoreBox, styles.scoreBoxBorder]}>
+                       <Text style={styles.scoreVal}>{cpiData?.efficiencyScore || "--"}</Text>
+                       <Text style={styles.scoreLabel}>EFFICIENCY</Text>
+                    </View>
+                    <View style={styles.scoreBox}>
+                       <Text style={styles.scoreVal}>{cpiData?.loadScore || "--"}</Text>
+                       <Text style={styles.scoreLabel}>TRAINING LOAD</Text>
+                    </View>
+                  </View>
+
+                  {insights?.insight && (
+                    <View style={styles.insightPanel}>
+                      <Text style={styles.insightTitle}>💡 AI BREAKTHROUGH INSIGHT</Text>
+                      <Text style={styles.insightDescription}>{insights.insight}</Text>
+                    </View>
+                  )}
+                </>
+              )}
+            </View>
+          </View>
+
+          {/* Right Column: Month Stats and Actions */}
+          <View style={styles.webRightColumn}>
+            <View style={styles.snapshotCard}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={styles.webSnapshotHeading}>TRAINING CONSISTENCY</Text>
+                {compliance && (
+                  <View style={[styles.complianceBadge, {backgroundColor: compliance.color + '20', borderColor: compliance.color}]}>
+                    <Text style={[styles.complianceValue, {color: compliance.color}]}>{compliance.score}% Adherence</Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.webMonthStatsGrid}>
+                <View style={styles.webMonthStatBox}>
+                  <Text style={styles.webMonthStatVal}>{monthStats.totalSessions}</Text>
+                  <Text style={styles.webMonthStatLabel}>TOTAL SESSIONS</Text>
+                </View>
+                <View style={styles.webMonthStatBox}>
+                  <Text style={styles.webMonthStatVal}>{monthStats.avgRpe}</Text>
+                  <Text style={styles.webMonthStatLabel}>AVG RPE EFFORT</Text>
+                </View>
+                <View style={styles.webMonthStatBox}>
+                  <Text style={styles.webMonthStatVal}>{monthStats.avgFatigue}</Text>
+                  <Text style={styles.webMonthStatLabel}>AVG FATIGUE</Text>
+                </View>
+              </View>
+
+              <View style={[styles.webLoadStatusBanner, { backgroundColor: monthStats.loadColor + '15', borderColor: monthStats.loadColor }]}>
+                <Text style={[styles.webLoadStatusText, { color: monthStats.loadColor }]}>
+                  SQUAD STATUS: {monthStats.loadStatus}
+                </Text>
+              </View>
+            </View>
+
+            {/* Quick action buttons */}
+            <View style={styles.webQuickActionsRow}>
+              <TouchableOpacity 
+                style={styles.webPrimaryBtn}
+                onPress={() => router.push({ pathname: "/coach/create-plan", params: { athleteId: id } })}
+              >
+                <Ionicons name="add" size={20} color="#FFF" />
+                <Text style={styles.webPrimaryBtnText}>Assign Training Plan</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <LinearGradient colors={["#0F172A", "#1E293B"]} style={styles.container}>
@@ -656,5 +835,102 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontSize: 14,
     fontWeight: '600',
-  }
+  },
+  // Web Styles
+  webContainer: {
+    flex: 1,
+    padding: 30,
+    backgroundColor: '#0F172A',
+  },
+  webHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  webAthleteNameHeader: {
+    color: '#FFF',
+    fontSize: 32,
+    fontWeight: '900',
+  },
+  webAthleteSportHeader: {
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    marginTop: 4,
+  },
+  webGrid: {
+    flexDirection: 'row',
+    gap: 30,
+  },
+  webLeftColumn: {
+    flex: 5.5,
+  },
+  webRightColumn: {
+    flex: 4.5,
+    gap: 20,
+  },
+  webSnapshotHeading: {
+    color: '#38BDF8',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  webMonthStatsGrid: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 20,
+  },
+  webMonthStatBox: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.02)',
+  },
+  webMonthStatVal: {
+    color: '#FFF',
+    fontSize: 24,
+    fontWeight: '900',
+  },
+  webMonthStatLabel: {
+    color: '#64748B',
+    fontSize: 9,
+    fontWeight: '800',
+    marginTop: 4,
+    letterSpacing: 1,
+  },
+  webLoadStatusBanner: {
+    marginTop: 20,
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  webLoadStatusText: {
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  webQuickActionsRow: {
+    flexDirection: 'row',
+  },
+  webPrimaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#3B82F6',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+  },
+  webPrimaryBtnText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
 });

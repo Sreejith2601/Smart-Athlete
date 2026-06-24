@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useState, useEffect, useCallback } from "react";
@@ -303,6 +303,169 @@ export default function TrainingOverview() {
     );
   };
 
+  const isWeb = Platform.OS === 'web';
+
+  if (isWeb) {
+    const plansData = Array.isArray(plans) ? plans : [];
+    const processedPlans = plansData.length > 0 ? (
+      plansData.flatMap((plan, pIndex) => {
+        if (plan.sessions && plan.sessions.length > 0) {
+          const morning = plan.sessions.find(s => s.sessionSlot?.toLowerCase() === 'morning');
+          const evening = plan.sessions.find(s => s.sessionSlot?.toLowerCase() === 'evening');
+
+          let nextSession = null;
+          if (morning && (morning.status === 'pending' || morning.status === 'active')) {
+            nextSession = morning;
+          } else if (evening && (evening.status === 'pending' || evening.status === 'active')) {
+            nextSession = evening;
+          } else {
+            nextSession = plan.sessions.find(s => s.status === 'pending' || s.status === 'active');
+          }
+
+          if (!nextSession) return [];
+
+          return [{
+            ...plan,
+            trainingType: nextSession.trainingType || plan.trainingType || "COACH ASSIGNED",
+            sessionSlot: nextSession.sessionSlot || plan.sessionSlot || "Today",
+            mainWork: nextSession.mainWork || plan.mainWork || "--",
+            duration: nextSession.duration || plan.duration || "--",
+            intensity: nextSession.intensity || plan.intensity || "--",
+            currentSessionId: nextSession._id || nextSession.id
+          }];
+        }
+        return [plan];
+      })
+    ) : [];
+
+    return (
+      <View style={styles.webContainer}>
+        {/* Onboarding Setup / Guards */}
+        {!hasHR ? (
+          <View style={styles.setupCard}>
+            <LinearGradient colors={['#FFFFFF', '#FFF0F5']} style={styles.setupGradient}>
+              <Ionicons name="settings-outline" size={32} color="#FF6B6B" style={{ marginBottom: 16 }} />
+              <Text style={styles.setupTitle}>Setup Required</Text>
+              <Text style={styles.setupSub}>Please complete your Quick Setup on the Home dashboard to unlock AI training plans.</Text>
+              <TouchableOpacity style={styles.setupBtn} onPress={() => router.push('/athlete/home')}>
+                <Text style={styles.setupBtnText}>Go to Home</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+          </View>
+        ) : (trainingMode === "self" && isNightWindow && plansData.length === 0) ? (
+          <View style={styles.nightAlert}>
+            <LinearGradient colors={['#FFFFFF', '#FFF0F5']} style={styles.nightAlertGradient}>
+              <View style={styles.nightAlertContent}>
+                <View style={styles.nightAlertLeft}>
+                  <Ionicons name="moon" size={24} color="#FF6B6B" />
+                  <View style={{ marginLeft: 12 }}>
+                    <Text style={styles.nightAlertTitle}>Nightly Preparation</Text>
+                    <Text style={styles.nightAlertSub}>AI morning session is being tuned.</Text>
+                  </View>
+                </View>
+                <View style={styles.timerContainer}>
+                  <Text style={styles.timerText}>{nightTimer}</Text>
+                  <Text style={styles.timerLabel}>UNTIL 5 AM</Text>
+                </View>
+              </View>
+            </LinearGradient>
+          </View>
+        ) : (trainingMode === "self" && hasCompletedToday) ? (
+          <View style={styles.setupCard}>
+            <LinearGradient colors={['#FFFFFF', '#F0FFF4']} style={styles.setupGradient}>
+              <Ionicons name="checkmark-done-circle" size={48} color="#22c55e" style={{ marginBottom: 16 }} />
+              <Text style={styles.setupTitle}>Training Complete</Text>
+              <Text style={styles.setupSub}>Great job today! Rest up and recover. Your next personalized AI plan will be mapped out tomorrow at 5 AM.</Text>
+              <View style={[styles.timerContainer, { marginTop: 24, paddingVertical: 14, paddingHorizontal: 36, backgroundColor: 'rgba(34, 197, 94, 0.1)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(34, 197, 94, 0.3)', alignItems: 'center' }]}>
+                <Text style={[styles.timerText, { color: '#22c55e' }]}>{completedTimer}</Text>
+                <Text style={[styles.timerLabel, { color: '#22c55e' }]}>UNTIL 5 AM</Text>
+              </View>
+            </LinearGradient>
+          </View>
+        ) : (trainingMode === "self" && plansData.length === 0) ? (
+          <View style={styles.setupCard}>
+            <LinearGradient colors={['#FFFFFF', '#FFF0F5']} style={styles.setupGradient}>
+              <Ionicons name="rocket-outline" size={32} color="#FF6B6B" style={{ marginBottom: 16 }} />
+              <Text style={styles.setupTitle}>Ready to Start?</Text>
+              <Text style={styles.setupSub}>Your AI morning and evening training programs are ready to be generated for your current metrics.</Text>
+              <TouchableOpacity style={[styles.setupBtn, isGenerating && { opacity: 0.6 }]} onPress={handleSyncAIPlan} disabled={isGenerating}>
+                <Text style={styles.setupBtnText}>{isGenerating ? "Syncing AI..." : "Sync AI Program"}</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+          </View>
+        ) : null}
+
+        {/* Dynamic Plans in Grid */}
+        {processedPlans.length > 0 ? (
+          <View style={styles.webPlansRow}>
+            {processedPlans.map((plan, index) => (
+              <View key={index} style={styles.webPlanCardWrapper}>
+                <View style={styles.heroCard}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={styles.heroTitle}>
+                        {(!plan.sessions || plan.sessions.length === 0) ? "COACH ASSIGNED" : (plan.trainingType ? plan.trainingType.toUpperCase() : "TRAINING")}
+                      </Text>
+                      {(!plan.sessions || plan.sessions.length === 0) && (
+                        <View style={{ marginLeft: 8, backgroundColor: 'rgba(56, 189, 248, 0.1)', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
+                           <Ionicons name="shield-checkmark" size={10} color="#38BDF8" />
+                        </View>
+                      )}
+                    </View>
+                    <TouchableOpacity onPress={() => handleDeletePlan(plan)}>
+                      <Text style={{ color: '#ef4444', fontSize: 13, fontWeight: '600', cursor: 'pointer' }}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.card}>
+                    <Text style={styles.cardTitle}>WORKOUT DETAILS</Text>
+                    
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Time</Text>
+                      <Text style={[styles.detailValue, {textTransform: 'capitalize'}]}>{plan.sessionSlot || "--"}</Text>
+                    </View>
+
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Intensity</Text>
+                      <Text style={styles.detailValue}>{plan.intensity || "--"}</Text>
+                    </View>
+
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Pace / Duration</Text>
+                      <Text style={styles.detailValue}>{plan.duration || "--"}</Text>
+                    </View>
+
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel} numberOfLines={1}>Distance / Work</Text>
+                      <Text style={[styles.detailValue, {flexShrink: 1, textAlign: 'right', marginLeft: 10}]}>{plan.mainWork || "--"}</Text>
+                    </View>
+                  </View>
+
+                  {activeSession ? (
+                    <TouchableOpacity style={[styles.stopButton, { cursor: 'pointer' }]} onPress={handleEndSession}>
+                      <Text style={styles.stopButtonText}>End Session</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity style={[styles.startButton, { cursor: 'pointer' }]} onPress={() => handleStartSession(plan)}>
+                      <Text style={styles.startButtonText}>Start Live Session</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : (
+          processedPlans.length === 0 && hasHR && !isNightWindow && !hasCompletedToday && (
+            <View style={[styles.heroCard, { width: '100%' }]}>
+              <Text style={styles.cardTitle}>NO PLANS</Text>
+              <Text style={styles.value}>You have no assigned training plans at the moment.</Text>
+            </View>
+          )
+        )}
+      </View>
+    );
+  }
+
   return (
     <LinearGradient
       colors={["#FFF5F5", "#FFE4E1", "#FFF5F5"]}
@@ -503,7 +666,7 @@ export default function TrainingOverview() {
       </ScrollView>
     </LinearGradient>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -686,6 +849,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 4,
+    cursor: "pointer",
   },
   setupBtnText: {
     color: '#FFFFFF',
@@ -742,5 +906,21 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     marginTop: 2,
+  },
+
+  // Web Grid Styles
+  webContainer: {
+    width: '100%',
+  },
+  webPlansRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    width: '100%',
+  },
+  webPlanCardWrapper: {
+    flexBasis: 'calc(50% - 8px)',
+    minWidth: 320,
+    marginBottom: 0,
   },
 });

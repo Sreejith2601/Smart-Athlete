@@ -1,6 +1,16 @@
-import { Stack } from "expo-router";
+import { Stack, Slot } from "expo-router";
+import { Platform } from "react-native";
+import WebLayout from "../../components/WebLayout";
 
 export default function CoachLayout() {
+  if (Platform.OS === "web") {
+    return (
+      <WebLayout role="coach">
+        <Slot />
+      </WebLayout>
+    );
+  }
+
   return (
     <Stack
       screenOptions={{

@@ -9,10 +9,12 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useRef } from 'react';
+import { useResponsiveLayout } from '../utils/webStyles';
 
 export default function RoleSelection() {
   const router = useRouter();
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const { isWide } = useResponsiveLayout();
 
   const selectRole = (role) => {
     router.push({
@@ -40,54 +42,54 @@ export default function RoleSelection() {
       colors={['#FFE2D1', '#FFD1D1', '#FFE5F1']} // Energetic Pastel Sunrise
       style={styles.container}
     >
-      {/* Center Glow */}
-      <View style={styles.glow} />
+      {/* Content Wrapper */}
+      <View style={styles.contentWrapper}>
+        {/* Top Section */}
+        <View style={styles.topSection}>
+          <Text style={styles.title}>Choose Your Role</Text>
+          <Text style={styles.subtitle}>
+            Smart AI Sports Companion
+          </Text>
+        </View>
 
-      {/* Top Section */}
-      <View style={styles.topSection}>
-        <Text style={styles.title}>Choose Your Role</Text>
-        <Text style={styles.subtitle}>
-          Smart AI Sports Companion
-        </Text>
-      </View>
+        {/* Card Section */}
+        <View style={[styles.cardSection, isWide && styles.cardSectionWide]}>
 
-      {/* Card Section */}
-      <View style={styles.cardSection}>
+          {/* Athlete Card */}
+          <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, isWide && { flex: 1 }]}>
+            <TouchableOpacity
+              style={[styles.card, isWide && styles.cardWide]}
+              activeOpacity={0.9}
+              onPressIn={onPressIn}
+              onPressOut={() => onPressOut('athlete')}
+            >
+              <Image
+                source={require('../assets/athlete.png')}
+                style={styles.icon}
+                resizeMode="contain"
+              />
+              <Text style={styles.cardText}>ATHLETE</Text>
+            </TouchableOpacity>
+          </Animated.View>
 
-        {/* Athlete Card */}
-        <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-          <TouchableOpacity
-            style={styles.card}
-            activeOpacity={1}
-            onPressIn={onPressIn}
-            onPressOut={() => onPressOut('athlete')}
-          >
-            <Image
-              source={require('../assets/athlete.png')}
-              style={styles.icon}
-              resizeMode="contain"
-            />
-            <Text style={styles.cardText}>ATHLETE</Text>
-          </TouchableOpacity>
-        </Animated.View>
+          {/* Coach Card */}
+          <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, isWide && { flex: 1 }]}>
+            <TouchableOpacity
+              style={[styles.card, isWide && styles.cardWide]}
+              activeOpacity={0.9}
+              onPressIn={onPressIn}
+              onPressOut={() => onPressOut('coach')}
+            >
+              <Image
+                source={require('../assets/coach.png')}
+                style={styles.icon}
+                resizeMode="contain"
+              />
+              <Text style={styles.cardText}>COACH</Text>
+            </TouchableOpacity>
+          </Animated.View>
 
-        {/* Coach Card */}
-        <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-          <TouchableOpacity
-            style={styles.card}
-            activeOpacity={1}
-            onPressIn={onPressIn}
-            onPressOut={() => onPressOut('coach')}
-          >
-            <Image
-              source={require('../assets/coach.png')}
-              style={styles.icon}
-              resizeMode="contain"
-            />
-            <Text style={styles.cardText}>COACH</Text>
-          </TouchableOpacity>
-        </Animated.View>
-
+        </View>
       </View>
     </LinearGradient>
   );
@@ -101,14 +103,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFE2D1',
   },
 
-  glow: {
-    position: 'absolute',
-    top: '25%',
-    left: '10%',
-    right: '10%',
-    height: 300,
+  contentWrapper: {
     backgroundColor: 'rgba(255,255,255,0.5)',
-    borderRadius: 200,
+    borderRadius: 40,
+    padding: 40,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 900,
+    alignSelf: 'center',
   },
 
   topSection: {
@@ -133,6 +135,14 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 
+  cardSectionWide: {
+    flexDirection: 'row',
+    gap: 24,
+    maxWidth: 720,
+    width: '100%',
+    alignSelf: 'center',
+  },
+
   card: {
     width: '100%',
     paddingVertical: 32,
@@ -149,6 +159,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 24,
     elevation: 8,
+  },
+
+  cardWide: {
+    marginBottom: 0,
+    minHeight: 240,
+    justifyContent: 'center',
+    cursor: 'pointer',
   },
 
   icon: {

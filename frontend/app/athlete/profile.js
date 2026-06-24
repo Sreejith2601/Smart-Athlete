@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -119,6 +119,164 @@ export default function AthleteProfile() {
   }
 
   const firstLetter = (athlete.name || "A").charAt(0).toUpperCase();
+  const isWeb = Platform.OS === 'web';
+
+  if (isWeb) {
+    return (
+      <View style={styles.webContainer}>
+        <View style={styles.webColumns}>
+          {/* Left Column - Vitals & Info */}
+          <View style={styles.webLeftColumn}>
+            {/* Header info */}
+            <View style={styles.webProfileHeaderCard}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{firstLetter}</Text>
+              </View>
+              <Text style={styles.name}>{athlete.name}</Text>
+              <Text style={styles.subInfo}>
+                {athlete.profile?.sport || "Sport"} • {athlete.profile?.experience || "Level"}
+              </Text>
+              <Text style={[styles.subInfo, { color: '#94A3B8', marginTop: 4 }]}>
+                {athlete.email}
+              </Text>
+            </View>
+
+            {/* Stats row */}
+            <View style={styles.statsRow}>
+              <View style={styles.statCard}>
+                <Text style={styles.statValue}>{athlete.profile?.age || "--"}</Text>
+                <Text style={styles.statLabel}>Age</Text>
+              </View>
+
+              <View style={styles.statCard}>
+                <Text style={styles.statValue}>{athlete.profile?.height || "--"} cm</Text>
+                <Text style={styles.statLabel}>Height</Text>
+              </View>
+
+              <View style={styles.statCard}>
+                <Text style={styles.statValue}>{athlete.profile?.weight || "--"} kg</Text>
+                <Text style={styles.statLabel}>Weight</Text>
+              </View>
+            </View>
+
+            {/* Physical Metrics */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>PHYSICAL METRICS</Text>
+              <View style={styles.metricRow}>
+                <Text style={styles.metricLabel}>BMI</Text>
+                <Text style={styles.metricValue}>{athlete.profile?.bmi || "--"}</Text>
+              </View>
+              <View style={styles.metricRow}>
+                <Text style={styles.metricLabel}>Category</Text>
+                <Text
+                  style={[
+                    styles.metricValue,
+                    athlete.profile?.bmiCategory === "Underweight" && { color: "#38BDF8" },
+                    athlete.profile?.bmiCategory === "Normal" && { color: "#22C55E" },
+                    athlete.profile?.bmiCategory === "Overweight" && { color: "#F59E0B" },
+                    athlete.profile?.bmiCategory === "Obese" && { color: "#EF4444" },
+                  ]}
+                >
+                  {athlete.profile?.bmiCategory || "Not calculated"}
+                </Text>
+              </View>
+            </View>
+
+            {/* Performance Snapshot */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>PERFORMANCE SNAPSHOT</Text>
+              <View style={styles.metricRow}>
+                <Text style={styles.metricLabel}>Goal</Text>
+                <Text style={styles.metricValue}>{athlete.profile?.goal || "Not set"}</Text>
+              </View>
+              <View style={styles.metricRow}>
+                <Text style={styles.metricLabel}>Availability</Text>
+                <Text style={styles.metricValue}>
+                  {athlete.profile?.availability ? athlete.profile.availability + " days/week" : "Not set"}
+                </Text>
+              </View>
+              <View style={styles.metricRow}>
+                <Text style={styles.metricLabel}>Dominant Side</Text>
+                <Text style={styles.metricValue}>{athlete.profile?.dominantSide || "Not set"}</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Right Column - Achievements, Records, History */}
+          <View style={styles.webRightColumn}>
+            {/* Achievements */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>ACHIEVEMENTS</Text>
+              {achievements.length > 0 ? (
+                achievements.map((item, index) => (
+                  <View key={index} style={styles.achievementRow}>
+                    <Text style={styles.metricLabel}>{item.event}</Text>
+                    <TextInput
+                      style={styles.achievementInput}
+                      placeholder="Position"
+                      placeholderTextColor="#9ca3af"
+                      value={item.position}
+                      onChangeText={(text) => handleUpdateAchievement(index, "position", text)}
+                    />
+                    <TextInput
+                      style={styles.achievementInput}
+                      placeholder="Year"
+                      placeholderTextColor="#9ca3af"
+                      keyboardType="numeric"
+                      value={item.year}
+                      onChangeText={(text) => handleUpdateAchievement(index, "year", text)}
+                    />
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.cardText}>No achievements added</Text>
+              )}
+
+              <TouchableOpacity style={styles.addButton} onPress={handleAddAchievement}>
+                <Text style={styles.addButtonText}>+ Add Achievement</Text>
+              </TouchableOpacity>
+
+              {isEditingAchievements && (
+                <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile}>
+                  <Text style={styles.saveButtonText}>Save Achievements</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Personal Best */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>PERSONAL BEST</Text>
+              {athlete.profile?.personalBest && athlete.profile.personalBest.length > 0 ? (
+                athlete.profile.personalBest.map((item, index) => (
+                  <View key={index} style={styles.metricRow}>
+                    <Text style={styles.metricLabel}>{item.event}</Text>
+                    <Text style={styles.metricValue}>{item.value}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.cardText}>No personal best recorded</Text>
+              )}
+            </View>
+
+            {/* Injury History */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>INJURY HISTORY</Text>
+              {athlete.profile?.injuries && athlete.profile.injuries.length > 0 ? (
+                athlete.profile.injuries.map((item, index) => (
+                  <View key={index} style={styles.metricRow}>
+                    <Text style={styles.metricLabel}>{item.injuryName}</Text>
+                    <Text style={styles.metricValue}>{item.status}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.cardText}>No injuries reported</Text>
+              )}
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <LinearGradient
@@ -534,5 +692,24 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "900",
     fontSize: 16,
+  },
+
+  // Web Grid Styles
+  webContainer: { width: '100%' },
+  webColumns: { flexDirection: 'row', gap: 24 },
+  webLeftColumn: { flex: 4.5, gap: 16 },
+  webRightColumn: { flex: 5.5, gap: 16 },
+  webProfileHeaderCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    borderRadius: 24,
+    padding: 24,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#FFFFFF",
+    shadowColor: "#FFC0CB",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 6,
   },
 });

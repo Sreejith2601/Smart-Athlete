@@ -9,6 +9,16 @@
     },
     "android": {
       "package": "com.anonymous.smartathlete"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/logo.png",
+      "name": "Smart Athlete",
+      "shortName": "SmartAthlete",
+      "description": "AI-powered athlete training and performance management platform",
+      "themeColor": "#FF6B6B",
+      "backgroundColor": "#FFF5F5"
     }
   }
 }

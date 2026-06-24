@@ -135,15 +135,15 @@ export default function DailyPlanScreen() {
         {/* Sessions */}
         {planData?.sessions?.length > 0 ? (
           planData.sessions.map((session, index) => {
-            const isRunning = session.type.includes("run") || session.type.includes("interval");
-            const isStrength = session.type.includes("strength");
+            const isRunning = (session.type || "").includes("run") || (session.type || "").includes("interval");
+            const isStrength = (session.type || "").includes("strength");
 
             return (
               <View key={index} style={styles.sessionCard}>
                 <View style={styles.sessionHeader}>
                   <View style={styles.typeTag}>
                     <Text style={styles.typeIcon}>{isRunning ? "🏃" : isStrength ? "💪" : "🔥"}</Text>
-                    <Text style={styles.typeText}>{session.type.replace("_", " ").toUpperCase()}</Text>
+                    <Text style={styles.typeText}>{(session.type || "TRAINING").replace("_", " ").toUpperCase()}</Text>
                   </View>
                   <View style={[styles.intensityTag, { borderColor: getIntensityColor(session.intensity) }]}>
                     <Text style={[styles.intensityTagText, { color: getIntensityColor(session.intensity) }]}>

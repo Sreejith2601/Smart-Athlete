@@ -298,7 +298,13 @@ export default function AthleteStep4() {
           <View style={styles.buttonRow}>
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => router.back()}
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace("/register");
+                }
+              }}
             >
               <Text style={styles.backText}>Back</Text>
             </TouchableOpacity>
@@ -322,6 +328,9 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingTop: 60,
     paddingBottom: 80,
+    maxWidth: 600,
+    width: "100%",
+    alignSelf: "center",
   },
   glowCircleTop: {
     position: "absolute",
@@ -358,6 +367,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: "100%",
+    maxWidth: 600,
     backgroundColor: "rgba(255, 255, 255, 0.8)",
     padding: 20,
     borderRadius: 24,

@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Animated, { FadeInUp, FadeInDown } from "react-native-reanimated";
 import { createTrainingPlan } from "../../services/api";
+import { useResponsiveLayout } from "../../utils/webStyles";
 
 const { width } = Dimensions.get("window");
 
@@ -23,6 +24,7 @@ export default function CreatePlan() {
   const router = useRouter();
   const { id, athleteId: paramId } = useLocalSearchParams();
   const athleteId = id || paramId;
+  const { isWeb } = useResponsiveLayout();
 
   const [planName, setPlanName] = useState("Weekly Focus");
   const [trainingType, setTrainingType] = useState("");
@@ -107,7 +109,7 @@ export default function CreatePlan() {
       </View>
 
       <ScrollView 
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, isWeb && styles.webScrollContent]}
         showsVerticalScrollIndicator={false}
       >
         <Animated.View entering={FadeInUp.delay(100)}>
@@ -275,5 +277,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "900",
     letterSpacing: 1.5,
+  },
+  webScrollContent: {
+    maxWidth: 640,
+    width: "100%",
+    alignSelf: "center",
+    marginTop: 20,
   },
 });

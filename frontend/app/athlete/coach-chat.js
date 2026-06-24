@@ -1,6 +1,7 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, ActivityIndicator, Platform } from "react-native";
 import { useState, useEffect, useCallback } from "react";
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getCoaches, getChatMessages, sendChatMessage } from "../../services/api";
 
@@ -93,6 +94,49 @@ export default function CoachChat() {
     );
   };
 
+  const isWeb = Platform.OS === 'web';
+
+  if (isWeb) {
+    return (
+      <View style={styles.webChatContainer}>
+        {loading ? (
+          <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+            <ActivityIndicator size="large" color="#FF6B6B" />
+          </View>
+        ) : !coachId ? (
+          <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 40 }}>
+            <Ionicons name="chatbubbles-outline" size={48} color="#FF6B6B" style={{ marginBottom: 12 }} />
+            <Text style={{ color: "#64748B", fontWeight: '700', fontSize: 16 }}>No coach assigned yet.</Text>
+            <Text style={{ color: "#94A3B8", marginTop: 4 }}>You need a coach assignment to start messaging.</Text>
+          </View>
+        ) : (
+          <>
+            <FlatList
+              data={messages}
+              keyExtractor={(item) => item._id}
+              renderItem={renderItem}
+              contentContainerStyle={{ paddingBottom: 20 }}
+              showsVerticalScrollIndicator={true}
+              style={{ flex: 1 }}
+            />
+            <View style={styles.webInputRow}>
+              <TextInput
+                style={styles.webInput}
+                placeholder="Type a message..."
+                placeholderTextColor="#94A3B8"
+                value={input}
+                onChangeText={setInput}
+              />
+              <TouchableOpacity style={styles.webSendButton} onPress={handleSend}>
+                <Ionicons name="send" size={16} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+      </View>
+    );
+  }
+
   return (
     <LinearGradient colors={["#0f2f36", "#2f5a63"]} style={styles.container}>
       <Text style={styles.title}>COACH CHAT</Text>
@@ -181,5 +225,46 @@ const styles = StyleSheet.create({
   sendText: {
     color: "#fff",
     fontWeight: "600",
+  },
+
+  // Web Styles
+  webChatContainer: {
+    height: 'calc(100vh - 140px)',
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#FFE4E1',
+    padding: 20,
+    flexDirection: 'column',
+  },
+  webInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 12,
+    marginTop: 8,
+  },
+  webInput: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  webSendButton: {
+    backgroundColor: '#FF6B6B',
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+    cursor: 'pointer',
   },
 });

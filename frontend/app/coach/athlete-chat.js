@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { useState, useEffect, useCallback } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Animated, { FadeInUp, SlideInRight, SlideInLeft } from "react-native-reanimated";
 import { getChatMessages, sendChatMessage, getAthletes } from "../../services/api";
+import { useResponsiveLayout } from "../../utils/webStyles";
 
 export default function AthleteChat() {
   const { id } = useLocalSearchParams();
@@ -15,11 +16,12 @@ export default function AthleteChat() {
   const [athleteName, setAthleteName] = useState("Athlete");
   const [myId, setMyId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [athletesList, setAthletesList] = useState([]);
 
   const fetchChatData = useCallback(async () => {
     try {
       const token = await AsyncStorage.getItem("token");
-      if (!token || !id) {
+      if (!token) {
         setLoading(false);
         return;
       }
@@ -32,22 +34,24 @@ export default function AthleteChat() {
         }
       }
 
-      if (athleteName === "Athlete") {
-        const athletes = await getAthletes(token);
-        const found = (Array.isArray(athletes) ? athletes : []).find(
-          (a) => String(a._id) === String(id)
-        );
-        if (found) setAthleteName(found.name);
-      }
+      // Load athlete list
+      const athletes = await getAthletes(token);
+      const mappedAthletes = (Array.isArray(athletes) ? athletes : []).map(a => ({ ...a, id: a._id }));
+      setAthletesList(mappedAthletes);
 
-      const msgs = await getChatMessages(token, id);
-      setMessages(Array.isArray(msgs) ? msgs : []);
+      if (id) {
+        const found = mappedAthletes.find((a) => String(a.id) === String(id));
+        if (found) setAthleteName(found.name);
+
+        const msgs = await getChatMessages(token, id);
+        setMessages(Array.isArray(msgs) ? msgs : []);
+      }
       setLoading(false);
     } catch (error) {
       console.error("[AthleteChat] Failed to fetch chat:", error.message);
       setLoading(false);
     }
-  }, [id, myId, athleteName]);
+  }, [id, myId]);
 
   useEffect(() => {
     fetchChatData();
@@ -101,6 +105,106 @@ export default function AthleteChat() {
       </Animated.View>
     );
   };
+
+  const { isWeb } = useResponsiveLayout();
+
+  if (isWeb) {
+    return (
+      <View style={styles.webContainer}>
+        <View style={styles.webLayoutGrid}>
+          {/* Left Panel: Athlete contacts */}
+          <View style={styles.webContactList}>
+            <Text style={styles.webContactHeader}>ATHLETES</Text>
+            <ScrollView style={{ flex: 1 }}>
+              {athletesList.map((ath) => {
+                const isActive = String(ath.id) === String(id);
+                return (
+                  <TouchableOpacity
+                    key={ath.id}
+                    style={[styles.webContactItem, isActive && styles.webContactItemActive]}
+                    onPress={() => router.replace({ pathname: "/coach/athlete-chat", params: { id: ath.id } })}
+                  >
+                    <View style={styles.webContactAvatar}>
+                      <LinearGradient colors={["#38BDF8", "#3B82F6"]} style={styles.webAvatarGradient}>
+                        <Text style={styles.webContactAvatarText}>{(ath.name || "A").charAt(0).toUpperCase()}</Text>
+                      </LinearGradient>
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={styles.webContactName}>{ath.name || "Athlete"}</Text>
+                      <Text style={styles.webContactSport}>{ath.sport || "Track & Field"}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Right Panel: Chat Pane */}
+          <View style={styles.webChatPane}>
+            {!id ? (
+              <View style={styles.webSelectPlaceholder}>
+                <Ionicons name="chatbubbles-outline" size={48} color="#64748B" />
+                <Text style={styles.webSelectTitle}>Select an Athlete</Text>
+                <Text style={styles.webSelectDesc}>Choose a contact from the roster to send secure directives</Text>
+              </View>
+            ) : (
+              <>
+                {/* Active Chat Header */}
+                <View style={styles.webChatHeader}>
+                  <View style={styles.headerInfo}>
+                    <View style={styles.avatar}>
+                      <LinearGradient colors={["#38BDF8", "#3B82F6"]} style={styles.avatarGradient}>
+                        <Text style={styles.avatarText}>{athleteName.charAt(0).toUpperCase()}</Text>
+                      </LinearGradient>
+                    </View>
+                    <View>
+                      <Text style={styles.headerName}>{athleteName}</Text>
+                      <View style={styles.statusRow}>
+                        <View style={styles.statusDot} />
+                        <Text style={styles.headerStatus}>Direct Channel Connected</Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Messages Box */}
+                <View style={styles.webMessagesScroll}>
+                  {loading ? (
+                    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                      <ActivityIndicator size="large" color="#38BDF8" />
+                    </View>
+                  ) : (
+                    <FlatList
+                      data={messages}
+                      keyExtractor={(item) => item._id}
+                      renderItem={renderItem}
+                      contentContainerStyle={{ paddingBottom: 20 }}
+                      showsVerticalScrollIndicator={true}
+                    />
+                  )}
+                </View>
+
+                {/* Send Directive Bar */}
+                <View style={styles.webInputArea}>
+                  <TextInput
+                    style={styles.webInput}
+                    placeholder="Enter directive..."
+                    placeholderTextColor="#64748B"
+                    value={input}
+                    onChangeText={setInput}
+                    onSubmitEditing={handleSend}
+                  />
+                  <TouchableOpacity style={styles.webSendButton} onPress={handleSend}>
+                    <Ionicons name="send" size={16} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <LinearGradient colors={["#0F172A", "#1E293B"]} style={styles.container}>
@@ -307,5 +411,131 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
+  },
+  // Web Styles
+  webContainer: {
+    flex: 1,
+    padding: 30,
+    backgroundColor: '#0F172A',
+  },
+  webLayoutGrid: {
+    flexDirection: 'row',
+    flex: 1,
+    gap: 30,
+    height: 'calc(100vh - 120px)',
+  },
+  webContactList: {
+    flex: 3.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 20,
+  },
+  webContactHeader: {
+    color: '#38BDF8',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 2,
+    marginBottom: 20,
+  },
+  webContactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 8,
+  },
+  webContactItemActive: {
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.2)',
+  },
+  webContactAvatar: {
+    width: 40,
+    height: 40,
+  },
+  webContactAvatarText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  webContactName: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  webContactSport: {
+    color: '#64748B',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  webChatPane: {
+    flex: 6.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    overflow: 'hidden',
+    flexDirection: 'column',
+  },
+  webChatHeader: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.01)',
+  },
+  webMessagesScroll: {
+    flex: 1,
+    padding: 20,
+  },
+  webInputArea: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.01)',
+  },
+  webInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: '#FFF',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  webSendButton: {
+    backgroundColor: '#38BDF8',
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+  },
+  webSelectPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  webSelectTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '800',
+    marginTop: 16,
+  },
+  webSelectDesc: {
+    color: '#64748B',
+    fontSize: 13,
+    marginTop: 6,
+    textAlign: 'center',
+    maxWidth: 300,
+    lineHeight: 18,
   },
 });

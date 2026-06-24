@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { getAthletes, getTrainingComparison } from "../../services/api";
+import { useResponsiveLayout } from "../../utils/webStyles";
 
 export default function AthleteDetail() {
   const { id } = useLocalSearchParams();
@@ -55,6 +56,137 @@ export default function AthleteDetail() {
       <LinearGradient colors={["#0F172A", "#1E293B"]} style={styles.loaderContainer}>
         <Text style={styles.loaderText}>Loading athlete profile...</Text>
       </LinearGradient>
+    );
+  }
+
+  const { isWeb } = useResponsiveLayout();
+
+  if (isWeb) {
+    return (
+      <View style={styles.webContainer}>
+        {/* Header Row */}
+        <View style={styles.webHeaderRow}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#FFF" />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.webAthleteNameHeader}>{athlete?.name || "Athlete"}</Text>
+            <Text style={styles.webAthleteSportHeader}>{athlete?.sport || "Track & Field"}</Text>
+          </View>
+        </View>
+
+        {/* Multi-Column Desktop Layout */}
+        <View style={styles.webColumnsGrid}>
+          
+          {/* Left Column: Metrics and Bio */}
+          <View style={styles.webLeftColumn}>
+            {/* Adherence Snapshot */}
+            <View style={styles.card}>
+              <View style={styles.cardHeaderRow}>
+                <Text style={styles.sectionHeading}>ADHERENCE SNAPSHOT</Text>
+                {compliance && (
+                  <View style={[styles.complianceBadge, {backgroundColor: compliance.color + '20', borderColor: compliance.color}]}>
+                    <Text style={[styles.complianceValue, {color: compliance.color}]}>{compliance.score}%</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.complianceNote}>
+                {compliance?.score > 80 ? "Excellent consistency. Ready for advanced loading." : "Inconsistent adherence. Review recovery windows."}
+              </Text>
+            </View>
+
+            {/* Personal Biometrics */}
+            <View style={styles.glassCard}>
+              <Text style={styles.sectionHeading}>PERSONAL BIOMETRICS</Text>
+              
+              <View style={styles.webBioGrid}>
+                <View style={styles.webBioItem}>
+                  <Text style={styles.bioLabel}>GENDER / AGE</Text>
+                  <Text style={styles.bioVal}>{athlete?.profile?.gender || "N/A"} / {athlete?.profile?.age || "--"}</Text>
+                </View>
+                <View style={styles.webBioItem}>
+                  <Text style={styles.bioLabel}>HEIGHT / WEIGHT</Text>
+                  <Text style={styles.bioVal}>{athlete?.profile?.height || "--"}cm / {athlete?.profile?.weight || "--"}kg</Text>
+                </View>
+                <View style={styles.webBioItem}>
+                  <Text style={styles.bioLabel}>BLOOD GROUP</Text>
+                  <Text style={styles.bioVal}>{athlete?.profile?.bloodGroup || "N/A"}</Text>
+                </View>
+                <View style={styles.webBioItem}>
+                  <Text style={styles.bioLabel}>LOCATION</Text>
+                  <Text style={styles.bioVal}>{athlete?.profile?.city || "Unknown"}</Text>
+                </View>
+              </View>
+              
+              <View style={styles.descBlock}>
+                <Text style={styles.bioLabel}>COACH NOTES & HISTORY</Text>
+                <Text style={styles.descText}>{athlete?.profile?.pastHistory || "No additional records."}</Text>
+              </View>
+            </View>
+
+            {/* View CPI Performance Engine */}
+            <TouchableOpacity 
+              style={styles.analyticsCTA}
+              onPress={() => router.push({ pathname: "/coach/athlete-history", params: { id } })}
+            >
+              <Text style={styles.analyticsCTAText}>VIEW CPI PERFORMANCE ENGINE</Text>
+              <Ionicons name="chevron-forward" size={16} color="#38BDF8" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Right Column: Training History */}
+          <View style={styles.webRightColumn}>
+            <View style={styles.webHistoryCard}>
+              <Text style={styles.webHistoryTitle}>TRAINING LOG TIMELINE</Text>
+              
+              <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={true}>
+                {history.length === 0 ? (
+                  <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>No recent training activity logged.</Text>
+                  </View>
+                ) : (
+                  history.map((day, idx) => (
+                    <View key={day.date} style={styles.webTimelineItem}>
+                      <View style={styles.timelineHeader}>
+                        <View style={[styles.dot, { backgroundColor: day.status === "completed" ? "#22C55E" : day.status === "missed" ? "#EF4444" : "#64748B" }]} />
+                        <Text style={styles.timelineDate}>{formatDate(day.date)}</Text>
+                        <View style={[styles.statusTag, { backgroundColor: day.status === "completed" ? "#22C55E20" : day.status === "missed" ? "#EF444420" : "#64748B20" }]}>
+                          <Text style={[styles.statusTagText, { color: day.status === "completed" ? "#22C55E" : day.status === "missed" ? "#EF4444" : "#64748B" }]}>{day.status.toUpperCase()}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.webTimelineContent}>
+                        {day.planned.map(p => (
+                          <View key={`p-${p._id || p.id}`} style={styles.plannedRow}>
+                            <Ionicons name="calendar-outline" size={14} color="#38BDF8" />
+                            <Text style={styles.plannedTitle}>PLANNED: {p.trainingType}</Text>
+                          </View>
+                        ))}
+
+                        {day.actual.map(s => (
+                          <View key={`s-${s._id || s.id}`} style={styles.actualCard}>
+                            <View style={styles.actualHeader}>
+                              <Text style={styles.actualType}>{s.trainingType}</Text>
+                              <Text style={styles.actualTime}>{new Date(s.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</Text>
+                            </View>
+                            <View style={styles.actualStats}>
+                              <Text style={styles.webMiniStatInline}>Distance: <Text style={styles.miniStatBold}>{s.distance?.toFixed(1) || "0.0"} km</Text></Text>
+                              <Text style={styles.webMiniStatInline}>Duration: <Text style={styles.miniStatBold}>{s.duration || "0"} min</Text></Text>
+                              <Text style={styles.webMiniStatInline}>RPE Stress: <Text style={styles.miniStatBold}>{s.rpe || "0"}</Text></Text>
+                            </View>
+                            {s.feedback && <Text style={styles.actualNote}>"{s.feedback}"</Text>}
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  ))
+                )}
+              </ScrollView>
+            </View>
+          </View>
+
+        </View>
+      </View>
     );
   }
 
@@ -428,5 +560,86 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontSize: 14,
     fontWeight: '600',
-  }
+  },
+  // Web Styles
+  webContainer: {
+    flex: 1,
+    padding: 30,
+    backgroundColor: '#0F172A',
+  },
+  webHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  webAthleteNameHeader: {
+    color: '#FFF',
+    fontSize: 32,
+    fontWeight: '900',
+  },
+  webAthleteSportHeader: {
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    marginTop: 4,
+  },
+  webColumnsGrid: {
+    flexDirection: 'row',
+    gap: 30,
+    flex: 1,
+  },
+  webLeftColumn: {
+    flex: 4,
+    flexDirection: 'column',
+    gap: 20,
+  },
+  webRightColumn: {
+    flex: 6,
+    flexDirection: 'column',
+  },
+  webBioGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 20,
+    marginTop: 20,
+  },
+  webBioItem: {
+    width: '45%',
+  },
+  webHistoryCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 28,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    flex: 1,
+    height: 'calc(100vh - 200px)',
+  },
+  webHistoryTitle: {
+    color: '#38BDF8',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+    marginBottom: 20,
+    textTransform: 'uppercase',
+  },
+  webTimelineItem: {
+    marginBottom: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.02)',
+    paddingBottom: 16,
+  },
+  webTimelineContent: {
+    marginLeft: 18,
+    marginTop: 8,
+    gap: 10,
+  },
+  webMiniStatInline: {
+    color: '#94A3B8',
+    fontSize: 13,
+    fontWeight: '500',
+    marginRight: 16,
+  },
 });

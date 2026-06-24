@@ -1,7 +1,17 @@
-import { Tabs } from "expo-router";
+import { Tabs, Slot } from "expo-router";
 import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Platform } from "react-native";
+import WebLayout from "../../components/WebLayout";
 
 export default function AthleteLayout() {
+  if (Platform.OS === "web") {
+    return (
+      <WebLayout role="athlete">
+        <Slot />
+      </WebLayout>
+    );
+  }
+
   return (
     <Tabs
       screenOptions={{

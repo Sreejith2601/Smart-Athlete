@@ -132,6 +132,9 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingTop: 60,
     paddingBottom: 60,
+    maxWidth: 600,
+    width: "100%",
+    alignSelf: "center",
   },
 
   /* Glow shapes */
@@ -178,6 +181,7 @@ const styles = StyleSheet.create({
 
   card: {
     width: "100%",
+    maxWidth: 600,
     padding: 22,
     borderRadius: 24,
     backgroundColor: "rgba(255, 255, 255, 0.7)",

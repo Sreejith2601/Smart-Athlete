@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeInUp, FadeInRight } from "react-native-reanimated";
+import { useResponsiveLayout } from "../../utils/webStyles";
 
 import { 
   getAthletes, 
@@ -170,6 +171,233 @@ export default function CoachHome() {
     return { total, tracking };
   }, [athletes, activeSessions]);
 
+
+  const { isWeb } = useResponsiveLayout();
+
+  if (isWeb) {
+    return (
+      <View style={styles.webContainer}>
+        {/* Top Header Row */}
+        <View style={styles.webHeaderRow}>
+          <View>
+            <Text style={styles.webGreeting}>Performance Hub</Text>
+            <Text style={styles.webCoachName}>Coach {userName}</Text>
+          </View>
+          
+          {/* Header Stats Panel */}
+          <View style={styles.webHeaderStats}>
+            <View style={styles.webHeaderStatBox}>
+              <Text style={styles.webHeaderStatVal}>{stats.total}</Text>
+              <Text style={styles.webHeaderStatLabel}>SQUAD SIZE</Text>
+            </View>
+            <View style={[styles.webHeaderStatBox, { borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.1)' }]}>
+              <Text style={[styles.webHeaderStatVal, { color: '#22C55E' }]}>{activeSessions.length}</Text>
+              <Text style={styles.webHeaderStatLabel}>ACTIVE NOW</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Dashboard Grid */}
+        <View style={styles.webGrid}>
+          {/* Left Panel: Squad List */}
+          <View style={styles.webMainPanel}>
+            <View style={styles.webSearchPanel}>
+              <Ionicons name="search" size={20} color="#64748B" style={{ marginRight: 10 }} />
+              <TextInput
+                style={styles.webSearchInput}
+                placeholder="Search athletes by name or sport..."
+                placeholderTextColor="#64748B"
+                value={search}
+                onChangeText={setSearch}
+              />
+            </View>
+
+            <View style={styles.webSectionHeader}>
+              <Text style={styles.webSectionTitle}>SQUAD ROSTER</Text>
+            </View>
+
+            {/* Athlete Table/List on Web */}
+            <View style={styles.webTableContainer}>
+              {filteredAthletes.map((athlete, index) => {
+                const isLive = activeSessions.some(s => s.athleteId === athlete.id);
+                const metrics = athleteMetrics[athlete.id] || { cpi: "--", insight: "Gathering data..." };
+
+                return (
+                  <View key={athlete.id || index} style={[styles.webTableRow, isLive && styles.webTableRowLive]}>
+                    {/* Athlete info */}
+                    <View style={styles.webTableColInfo}>
+                      <View style={styles.avatarContainer}>
+                        <LinearGradient colors={["#38BDF8", "#3B82F6"]} style={styles.avatar}>
+                          <Text style={styles.avatarText}>{(athlete.name || "A").charAt(0)}</Text>
+                        </LinearGradient>
+                        {isLive && <View style={styles.liveIndicator} />}
+                      </View>
+                      <View style={{ marginLeft: 14 }}>
+                        <TouchableOpacity onPress={() => router.push({ pathname: "/coach/athlete-detail", params: { id: athlete.id } })}>
+                          <Text style={styles.webAthleteName}>{athlete.name || "Unknown Athlete"}</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.webAthleteSport}>{athlete.sport || "Athlete"}</Text>
+                      </View>
+                    </View>
+
+                    {/* CPI Score */}
+                    <View style={styles.webTableColCPI}>
+                      <Text style={styles.webCPILabel}>CPI Score</Text>
+                      <Text style={styles.webCPIVal}>{metrics.cpi}</Text>
+                    </View>
+
+                    {/* AI Smart Insight */}
+                    <View style={styles.webTableColInsight}>
+                      <Text style={styles.webInsightLabel}>LATEST INSIGHT</Text>
+                      <Text style={styles.webInsightVal} numberOfLines={2}>{metrics.insight}</Text>
+                    </View>
+
+                    {/* Actions */}
+                    <View style={styles.webTableColActions}>
+                      <TouchableOpacity 
+                        style={[styles.webActionBtn, { borderColor: '#3B82F6' }]} 
+                        onPress={() => router.push({ pathname: "/coach/create-plan", params: { athleteId: athlete.id } })}
+                      >
+                        <Ionicons name="calendar-outline" size={14} color="#3B82F6" />
+                        <Text style={[styles.webActionBtnText, { color: '#3B82F6' }]}>Plan</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={[styles.webActionBtn, { borderColor: '#8B5CF6' }]} 
+                        onPress={() => router.push({ pathname: "/coach/athlete-chat", params: { athleteId: athlete.id } })}
+                      >
+                        <Ionicons name="chatbubble-ellipses-outline" size={14} color="#8B5CF6" />
+                        <Text style={[styles.webActionBtnText, { color: '#8B5CF6' }]}>Message</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={[styles.webActionBtn, { borderColor: '#10B981' }]} 
+                        onPress={() => router.push({ pathname: "/coach/athlete-history", params: { id: athlete.id } })}
+                      >
+                        <Ionicons name="stats-chart-outline" size={14} color="#10B981" />
+                        <Text style={[styles.webActionBtnText, { color: '#10B981' }]}>Analytics</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })}
+
+              {filteredAthletes.length === 0 && (
+                <View style={styles.webEmptyContainer}>
+                  <Ionicons name="people-outline" size={48} color="#475569" />
+                  <Text style={styles.webEmptyTitle}>No squad members found</Text>
+                  <Text style={styles.webEmptySubtitle}>Adjust your search query above</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Right Panel: Live Monitoring Radar */}
+          <View style={styles.webSidePanel}>
+            <View style={styles.webLiveMonitorCard}>
+              <View style={styles.webLiveMonitorHeader}>
+                <View style={styles.liveDot} />
+                <Text style={styles.webLiveMonitorTitle}>LIVE MONITORING RADAR</Text>
+              </View>
+
+              {activeSessions.length > 0 ? (
+                <View style={{ flex: 1, justifyContent: 'space-between' }}>
+                  <View style={{ gap: 16 }}>
+                    <View style={styles.webLiveAthleteRow}>
+                      <View style={[styles.avatar, { width: 44, height: 44, backgroundColor: '#22C55E' }]}>
+                        <Text style={styles.avatarText}>
+                          {(activeSessions[activeAthleteIndex]?.athlete?.name || "A").charAt(0)}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={styles.webLiveAthleteName}>
+                          {activeSessions[activeAthleteIndex]?.athlete?.name}
+                        </Text>
+                        <Text style={styles.webLiveAthleteSession}>
+                          {activeSessions[activeAthleteIndex]?.sessionSlot || "Active Workout"}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.webLiveMetricBox}>
+                      <Text style={styles.webLiveMetricLabel}>ELAPSED TIME</Text>
+                      <Text style={styles.webLiveMetricValue}>
+                        {formatDuration(activeSessions[activeAthleteIndex]?.startTime)}
+                      </Text>
+                    </View>
+
+                    <View style={styles.webLiveMetricBox}>
+                      <Text style={styles.webLiveMetricLabel}>HEART RATE STATUS</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                        <Ionicons name="pulse" size={20} color="#FF6B6B" />
+                        <Text style={[styles.webLiveMetricValue, { color: '#FF6B6B' }]}>
+                          {activeSessions[activeAthleteIndex]?.currentHeartRate || "138"} BPM
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {activeSessions.length > 1 && (
+                    <View style={styles.webLivePagination}>
+                      <TouchableOpacity 
+                        style={styles.webLivePageBtn}
+                        onPress={() => setActiveAthleteIndex(prev => (prev - 1 + activeSessions.length) % activeSessions.length)}
+                      >
+                        <Ionicons name="chevron-back" size={16} color="#FFF" />
+                      </TouchableOpacity>
+                      <Text style={styles.webLivePageText}>
+                        {activeAthleteIndex + 1} of {activeSessions.length}
+                      </Text>
+                      <TouchableOpacity 
+                        style={styles.webLivePageBtn}
+                        onPress={() => setActiveAthleteIndex(prev => (prev + 1) % activeSessions.length)}
+                      >
+                        <Ionicons name="chevron-forward" size={16} color="#FFF" />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                <View style={styles.webLiveEmptyState}>
+                  <Ionicons name="radio-outline" size={44} color="#475569" style={{ marginBottom: 12 }} />
+                  <Text style={styles.webLiveEmptyText}>No active live sessions</Text>
+                  <Text style={styles.webLiveEmptySub}>Athletes currently training will appear here in real-time.</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Quick Actions Panel */}
+            <View style={styles.webQuickActionsCard}>
+              <Text style={styles.webQuickActionsTitle}>SYSTEM QUICK LINKS</Text>
+              
+              <TouchableOpacity 
+                style={styles.webQuickLinkRow}
+                onPress={() => router.push("/coach/workload")}
+              >
+                <Ionicons name="analytics" size={18} color="#FF6B6B" />
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={styles.webQuickLinkLabel}>Workload Analysis</Text>
+                  <Text style={styles.webQuickLinkDesc}>View cumulative fatigue and squad levels</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#64748B" />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.webQuickLinkRow}
+                onPress={handleLogout}
+              >
+                <Ionicons name="log-out-outline" size={18} color="#EF4444" />
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={[styles.webQuickLinkLabel, { color: '#EF4444' }]}>Terminate Session</Text>
+                  <Text style={styles.webQuickLinkDesc}>Sign out of your dashboard profile</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <LinearGradient colors={["#0F172A", "#1E293B"]} style={styles.container}>
@@ -664,6 +892,322 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 3,
-  }
+  },
+  // Web styles
+  webContainer: {
+    flex: 1,
+    padding: 30,
+    backgroundColor: '#0F172A',
+  },
+  webHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  webGreeting: {
+    color: '#94A3B8',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  webCoachName: {
+    color: '#FFFFFF',
+    fontSize: 32,
+    fontWeight: '900',
+    marginTop: 4,
+  },
+  webHeaderStats: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  webHeaderStatBox: {
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  webHeaderStatVal: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#38BDF8',
+  },
+  webHeaderStatLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+    marginTop: 4,
+    letterSpacing: 1,
+  },
+  webGrid: {
+    flexDirection: 'row',
+    gap: 30,
+    flex: 1,
+  },
+  webMainPanel: {
+    flex: 7,
+    flexDirection: 'column',
+  },
+  webSearchPanel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    height: 56,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    marginBottom: 24,
+  },
+  webSearchInput: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  webSectionHeader: {
+    marginBottom: 16,
+  },
+  webSectionTitle: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+  webTableContainer: {
+    flexDirection: 'column',
+    gap: 16,
+  },
+  webTableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  webTableRowLive: {
+    borderColor: 'rgba(34, 197, 94, 0.3)',
+    backgroundColor: 'rgba(34, 197, 94, 0.02)',
+  },
+  webTableColInfo: {
+    flex: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  webAthleteName: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  webAthleteSport: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  webTableColCPI: {
+    flex: 1.5,
+    justifyContent: 'center',
+  },
+  webCPILabel: {
+    color: '#64748B',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  webCPIVal: {
+    color: '#38BDF8',
+    fontSize: 22,
+    fontWeight: '900',
+    marginTop: 2,
+  },
+  webTableColInsight: {
+    flex: 4,
+    justifyContent: 'center',
+    paddingRight: 10,
+  },
+  webInsightLabel: {
+    color: '#64748B',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  webInsightVal: {
+    color: '#94A3B8',
+    fontSize: 13,
+    fontWeight: '500',
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  webTableColActions: {
+    flex: 3.5,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  webActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.01)',
+  },
+  webActionBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  webSidePanel: {
+    flex: 3,
+    flexDirection: 'column',
+    gap: 24,
+  },
+  webLiveMonitorCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 24,
+    minHeight: 280,
+  },
+  webLiveMonitorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 20,
+  },
+  webLiveMonitorTitle: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+  },
+  webLiveAthleteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  webLiveAthleteName: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  webLiveAthleteSession: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  webLiveMetricBox: {
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 14,
+  },
+  webLiveMetricLabel: {
+    color: '#64748B',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  webLiveMetricValue: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  webLivePagination: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 20,
+  },
+  webLivePageBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  webLivePageText: {
+    color: '#94A3B8',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  webLiveEmptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  webLiveEmptyText: {
+    color: '#E2E8F0',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  webLiveEmptySub: {
+    color: '#64748B',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 16,
+  },
+  webQuickActionsCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 24,
+    gap: 16,
+  },
+  webQuickActionsTitle: {
+    color: '#64748B',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  webQuickLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.02)',
+  },
+  webQuickLinkLabel: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  webQuickLinkDesc: {
+    color: '#64748B',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  webEmptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 80,
+  },
+  webEmptyTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '900',
+    marginTop: 12,
+  },
+  webEmptySubtitle: {
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 6,
+  },
 });
 

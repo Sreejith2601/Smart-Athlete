@@ -3,23 +3,48 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  TouchableOpacity,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState, useCallback } from "react";
 import { LinearGradient } from "expo-linear-gradient";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
+
+      import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getAthletes, getAthleteSessionHistory } from "../../services/api";
+import { useResponsiveLayout } from "../../utils/webStyles";
 
 export default function WorkloadDetail() {
   const { id } = useLocalSearchParams();
+  const router = useRouter();
   const [athlete, setAthlete] = useState(null);
   const [sessions, setSessions] = useState([]);
 
-
   const loadData = useCallback(async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (token) {
+        // Try backend loading first
+        const [backendAthletes, backendSessions] = await Promise.all([
+          getAthletes(token),
+          getAthleteSessionHistory(token, id)
+        ]);
+
+        const mappedAthletes = (Array.isArray(backendAthletes) ? backendAthletes : []).map(u => ({ ...u, id: u._id }));
+        const foundAthlete = mappedAthletes.find(u => String(u.id) === String(id));
+        
+        setAthlete(foundAthlete || null);
+        setSessions(Array.isArray(backendSessions) ? backendSessions : []);
+        return;
+      }
+    } catch (err) {
+      console.log("[WorkloadDetail] Backend fetch failed, falling back to local:", err.message);
+    }
+
+    // Fallback to local storage
     try {
       const usersData = await AsyncStorage.getItem("users");
       const users = usersData ? JSON.parse(usersData) : [];
-
       const foundAthlete = users.find(
         (u) => String(u.id) === String(id)
       );
@@ -88,6 +113,92 @@ export default function WorkloadDetail() {
   } else if (avgFatigue >= 5) {
     workloadLabel = "Moderate";
     color = "#F59E0B";
+  }
+
+  const { isWeb } = useResponsiveLayout();
+
+  if (isWeb) {
+    return (
+      <View style={styles.webContainer}>
+        <View style={styles.webHeaderRow}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#FFF" />
+          </TouchableOpacity>
+          <Text style={styles.webHeader}>{athlete.name} Workload Analysis</Text>
+        </View>
+
+        <View style={styles.webGrid}>
+          {/* Left Column: Workload status */}
+          <View style={styles.webLeftColumn}>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>CUMULATIVE METRICS</Text>
+              <Text style={[styles.value, { color, fontSize: 44, marginVertical: 10 }]}>
+                {workloadLabel}
+              </Text>
+              <View style={styles.webStatsRow}>
+                <View style={styles.webStatItem}>
+                  <Text style={styles.webStatLabel}>Avg Fatigue</Text>
+                  <Text style={styles.webStatVal}>{avgFatigue.toFixed(1)} / 10</Text>
+                </View>
+                <View style={styles.webStatItem}>
+                  <Text style={styles.webStatLabel}>Avg Pace</Text>
+                  <Text style={styles.webStatVal}>{avgPace.toFixed(1)} min/km</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Right Column: Sessions */}
+          <View style={styles.webRightColumn}>
+            {/* Daily Performance */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>DAILY PERFORMANCE</Text>
+              {todaySession ? (
+                <View style={styles.webMetricGrid}>
+                  <View style={styles.webMetricBox}>
+                    <Text style={styles.webMetricLabel}>Pace</Text>
+                    <Text style={styles.webMetricVal}>{todaySession.pace || "-"}</Text>
+                  </View>
+                  <View style={styles.webMetricBox}>
+                    <Text style={styles.webMetricLabel}>Fatigue</Text>
+                    <Text style={styles.webMetricVal}>{todaySession.fatigue || "-"}</Text>
+                  </View>
+                </View>
+              ) : (
+                <Text style={styles.noData}>No session logged today</Text>
+              )}
+            </View>
+
+            {/* Last Session */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>LAST LOGGED SESSION</Text>
+              {lastSession ? (
+                <View style={styles.webMetricGrid}>
+                  <View style={styles.webMetricBox}>
+                    <Text style={styles.webMetricLabel}>Date</Text>
+                    <Text style={styles.webMetricVal}>{lastSession.date}</Text>
+                  </View>
+                  <View style={styles.webMetricBox}>
+                    <Text style={styles.webMetricLabel}>Duration</Text>
+                    <Text style={styles.webMetricVal}>{lastSession.duration || "-"} min</Text>
+                  </View>
+                  <View style={styles.webMetricBox}>
+                    <Text style={styles.webMetricLabel}>Pace</Text>
+                    <Text style={styles.webMetricVal}>{lastSession.pace || "-"}</Text>
+                  </View>
+                  <View style={styles.webMetricBox}>
+                    <Text style={styles.webMetricLabel}>Fatigue</Text>
+                    <Text style={styles.webMetricVal}>{lastSession.fatigue || "-"}</Text>
+                  </View>
+                </View>
+              ) : (
+                <Text style={styles.noData}>No sessions recorded</Text>
+              )}
+            </View>
+          </View>
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -227,5 +338,86 @@ const styles = StyleSheet.create({
     color: "#94A3B8",
     fontStyle: "italic",
     fontWeight: "600",
+  },
+  // Web Styles
+  webContainer: {
+    flex: 1,
+    padding: 30,
+    backgroundColor: '#0F172A',
+  },
+  webHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  webHeader: {
+    fontSize: 32,
+    fontWeight: "900",
+    color: "#FFFFFF",
+  },
+  webGrid: {
+    flexDirection: 'row',
+    gap: 30,
+  },
+  webLeftColumn: {
+    flex: 4,
+  },
+  webRightColumn: {
+    flex: 6,
+    gap: 20,
+  },
+  webStatsRow: {
+    flexDirection: 'row',
+    marginTop: 20,
+    gap: 20,
+  },
+  webStatItem: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    borderRadius: 16,
+    padding: 16,
+  },
+  webStatLabel: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  webStatVal: {
+    color: '#FFF',
+    fontSize: 20,
+    fontWeight: '900',
+    marginTop: 6,
+  },
+  webMetricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  webMetricBox: {
+    flex: 1,
+    minWidth: '40%',
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    borderRadius: 14,
+    padding: 14,
+  },
+  webMetricLabel: {
+    color: '#64748B',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  webMetricVal: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: 4,
   },
 });

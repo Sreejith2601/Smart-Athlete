@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, SectionList, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, SectionList, TouchableOpacity, Platform } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useFocusEffect } from "expo-router";
@@ -59,7 +59,7 @@ export default function TrainingHistory() {
       const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
       const startOfWeek = new Date(now.setDate(diffToMonday));
       startOfWeek.setHours(0, 0, 0, 0);
-
+ 
       const startOfLastWeek = new Date(startOfWeek);
       startOfLastWeek.setDate(startOfWeek.getDate() - 7);
 
@@ -92,6 +92,128 @@ export default function TrainingHistory() {
       }));
     }
   }, [sessions, filterMode]);
+
+  const isWeb = Platform.OS === 'web';
+
+  if (isWeb) {
+    const now = new Date();
+    let filteredSessions = [];
+    
+    if (filterMode === 'week') {
+      const day = now.getDay();
+      const startOfWeek = new Date(now.setDate(now.getDate() - day + (day === 0 ? -6 : 1)));
+      startOfWeek.setHours(0,0,0,0);
+      filteredSessions = sessions.filter(s => new Date(s.date || s.createdAt) >= startOfWeek);
+    } else {
+      const startOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      filteredSessions = sessions.filter(s => new Date(s.date || s.createdAt) >= startOfLastMonth);
+    }
+
+    const totalDuration = filteredSessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+
+    return (
+      <View style={styles.webContainer}>
+        {/* Filter and Summary Row */}
+        <View style={styles.webRowHeader}>
+          <View style={styles.summaryCardWeb}>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>{filteredSessions.length}</Text>
+              <Text style={styles.summaryLabel}>Sessions</Text>
+            </View>
+            <View style={[styles.summaryItem, styles.summaryBorder]}>
+              <Text style={styles.summaryValue}>{totalDuration}m</Text>
+              <Text style={styles.summaryLabel}>Total Duration</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={[styles.summaryValue, { color: '#38BDF8' }]}>{weeklyCpi || "N/A"}</Text>
+              <Text style={styles.summaryLabel}>Avg CPI</Text>
+            </View>
+          </View>
+
+          <View style={[styles.filterContainer, { marginBottom: 0, width: 220 }]}>
+            <TouchableOpacity 
+              style={[styles.filterBtn, filterMode === 'week' && styles.filterBtnActive]}
+              onPress={() => setFilterMode('week')}
+            >
+              <Text style={[styles.filterText, filterMode === 'week' && styles.filterTextActive]}>Weekly</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.filterBtn, filterMode === 'month' && styles.filterBtnActive]}
+              onPress={() => setFilterMode('month')}
+            >
+              <Text style={[styles.filterText, filterMode === 'month' && styles.filterTextActive]}>Monthly</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Table representation on Web */}
+        {sessions.length === 0 ? (
+          <View style={styles.emptyCardWeb}>
+            <Text style={styles.emptyText}>No sessions logged yet.</Text>
+          </View>
+        ) : (
+          <View style={styles.tableCard}>
+            <View style={styles.tableHeaderRow}>
+              <Text style={[styles.tableHeaderCell, { flex: 1.5 }]}>Date / Slot</Text>
+              <Text style={[styles.tableHeaderCell, { flex: 2 }]}>Type</Text>
+              <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Distance</Text>
+              <Text style={[styles.tableHeaderCell, { flex: 1.2 }]}>Duration</Text>
+              <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Pace</Text>
+              <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Pulse</Text>
+              <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Fatigue</Text>
+              <Text style={[styles.tableHeaderCell, { flex: 1.2 }]}>Effort</Text>
+              <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Status</Text>
+            </View>
+
+            {sessions.map((session, index) => {
+              const isMissed = session.status === 'missed';
+              return (
+                <View key={session._id || index} style={[styles.tableRow, isMissed && styles.tableRowMissed]}>
+                  <Text style={[styles.tableCell, { flex: 1.5, fontWeight: '700' }]}>
+                    {formatDate(session.createdAt || session.date)}
+                    {"\n"}
+                    <Text style={{ fontSize: 10, color: '#94A3B8', textTransform: 'capitalize' }}>{session.sessionSlot}</Text>
+                  </Text>
+                  <Text style={[styles.tableCell, { flex: 2, color: '#FF6B6B', fontWeight: '800', textTransform: 'capitalize' }]}>
+                    {session.trainingType}
+                  </Text>
+                  <Text style={[styles.tableCell, { flex: 1 }]}>
+                    {isMissed ? '--' : `${session.distance?.toFixed(1) || '0.0'} km`}
+                  </Text>
+                  <Text style={[styles.tableCell, { flex: 1.2 }]}>
+                    {session.duration} mins
+                  </Text>
+                  <Text style={[styles.tableCell, { flex: 1 }]}>
+                    {isMissed ? '--' : (session.pace !== null && session.pace !== undefined ? `${session.pace.toFixed(1)} m/k` : 'N/A')}
+                  </Text>
+                  <Text style={[styles.tableCell, { flex: 1 }]}>
+                    {isMissed ? '--' : (session.pulse ? `${session.pulse} bpm` : 'N/A')}
+                  </Text>
+                  <Text style={[styles.tableCell, { flex: 1 }]}>
+                    {session.fatigue}/10
+                  </Text>
+                  <Text style={[styles.tableCell, { flex: 1.2, textTransform: 'capitalize' }]}>
+                    {isMissed ? '--' : (session.effort || (session.rpe <= 4 ? "Easy" : session.rpe <= 7 ? "Moderate" : "Hard"))}
+                  </Text>
+                  <View style={[styles.tableCell, { flex: 1, justifyContent: 'center' }]}>
+                    {isMissed ? (
+                      <View style={[styles.missedTag, { alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2 }]}>
+                        <Text style={[styles.missedTagText, { fontSize: 8 }]}>MISSED</Text>
+                      </View>
+                    ) : (
+                      <View style={{ backgroundColor: 'rgba(34, 197, 94, 0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, alignSelf: 'flex-start' }}>
+                        <Text style={{ color: '#22c55e', fontSize: 8, fontWeight: '900' }}>DONE</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </View>
+    );
+  }
 
   return (
     <LinearGradient colors={["#FFF5F5", "#FFE4E1", "#FFF5F5"]} style={{ flex: 1 }}>
@@ -248,9 +370,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
     borderRadius: 10,
+    cursor: "pointer",
   },
   filterBtnActive: {
-    backgroundColor: '#38BDF8',
+    backgroundColor: '#FF6B6B',
   },
   filterText: {
     color: '#64748B',
@@ -264,7 +387,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 14,
     fontWeight: "800",
-    color: "#38BDF8",
+    color: "#FF6B6B",
     marginTop: 24,
     marginBottom: 12,
     textTransform: "uppercase",
@@ -295,7 +418,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   type: {
-    color: "#38BDF8",
+    color: "#FF6B6B",
     fontSize: 18,
     fontWeight: "900",
     marginBottom: 6,
@@ -386,5 +509,81 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+
+  // Web Styles
+  webContainer: {
+    width: '100%',
+  },
+  webRowHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+    gap: 20,
+  },
+  summaryCardWeb: {
+    flex: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    borderRadius: 20,
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: "#FFFFFF",
+    shadowColor: "#FFC0CB",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  emptyCardWeb: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 40,
+    borderWidth: 1,
+    borderColor: '#FFE4E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tableCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#FFE4E1',
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+  },
+  tableHeaderRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 2,
+    borderBottomColor: '#FFE4E1',
+    paddingBottom: 12,
+    marginBottom: 8,
+  },
+  tableHeaderCell: {
+    color: '#64748B',
+    fontWeight: '800',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+    paddingVertical: 14,
+  },
+  tableRowMissed: {
+    backgroundColor: '#FFF5F5',
+  },
+  tableCell: {
+    color: '#475569',
+    fontSize: 13,
+    fontWeight: '500',
   },
 });
