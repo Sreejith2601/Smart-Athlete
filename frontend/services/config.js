@@ -18,7 +18,7 @@ import { Platform } from "react-native";
  *   Android emulator maps 10.0.2.2 → host machine's localhost.
  */
 
-const PRODUCTION_API_URL = "https://your-production-server.com/api";
+const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || "https://your-production-server.com/api";
 const DEV_PORT = 5000;
 
 function getDevApiUrl() {
@@ -75,5 +75,5 @@ function getDevTrainingUrl() {
 }
 
 export const API_BASE_URL = isDev ? getDevApiUrl() : PRODUCTION_API_URL;
-export const TRAINING_ENGINE_URL = isDev ? getDevTrainingUrl() : "https://your-production-engine.com/api";
+export const TRAINING_ENGINE_URL = isDev ? getDevTrainingUrl() : `${PRODUCTION_API_URL}/training-engine`;
 export const DEV_API_PORT = DEV_PORT;
